@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ラクガキバトル</title>
+  <style>
+    :root {
+      --ink: #17182f;
+      --paper: #fff7d6;
+      --paper-light: #fffdf0;
+      --accent: #ff4d6d;
+      --accent-dark: #b92d55;
+      --blue: #32a8ff;
+      --blue-dark: #1455a0;
+      --yellow: #ffd93d;
+      --green: #50d890;
+      --purple: #8c52ff;
+      --muted: #5e5778;
+      --line: #17182f;
+      --shadow: 8px 8px 0 var(--line);
+      --pixel: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      image-rendering: pixelated;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background-color: #151633;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        radial-gradient(circle at 12% 18%, #ffd93d 0 2px, transparent 3px),
+        radial-gradient(circle at 82% 13%, #fff7d6 0 2px, transparent 3px),
+        radial-gradient(circle at 66% 72%, #32a8ff 0 2px, transparent 3px),
+        linear-gradient(#1b1d46 0 70%, #24275a 70% 73%, #18203f 73% 100%);
+      background-size: 16px 16px, 16px 16px, 120px 120px, 170px 170px, 210px 210px, 100% 100%;
+      font-family: "Courier New", "MS Gothic", "Hiragino Kaku Gothic ProN", monospace;
+      font-weight: 700;
+      overflow-x: hidden;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      opacity: .08;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 3px,
+        #000 4px
+      );
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      filter: grayscale(.45);
+    }
+
+    .app {
+      width: min(1120px, calc(100% - 24px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 0 48px;
+      display: grid;
+      place-items: center;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      animation: pixelAppear .34s steps(5, end) both;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes pixelAppear {
+      from { opacity: 0; transform: translateY(16px) scale(.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .panel {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: clamp(28px, 5vw, 58px);
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(23,24,47,.05) 2px, transparent 2px),
+        linear-gradient(rgba(23,24,47,.05) 2px, transparent 2px),
+        var(--paper);
+      background-size: 16px 16px;
+      border: 5px solid var(--line);
+      border-radius: 0;
+      box-shadow: var(--shadow), inset 0 0 0 5px var(--paper-light);
+      text-align: center;
+      position: relative;
+    }
+
+    .panel::before,
+    .panel::after {
+      content: "◆";
+      position: absolute;
+      color: var(--accent);
+      font-size: 24px;
+      text-shadow: 4px 4px 0 var(--yellow);
+    }
+
+    .panel::before { top: 12px; left: 16px; }
+    .panel::after { right: 16px; bottom: 12px; }
+
+    .title {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(43px, 9vw, 84px);
+      line-height: 1;
+      letter-spacing: -.08em;
+      text-shadow:
+        4px 0 0 var(--line), -4px 0 0 var(--line),
+        0 4px 0 var(--line), 0 -4px 0 var(--line),
+        8px 8px 0 var(--accent),
+        12px 12px 0 var(--line);
+      animation: titleBlink 1.4s steps(2, end) infinite;
+    }
+
+    @keyframes titleBlink {
+      50% { transform: translateY(-2px); }
+    }
+
+    .subtitle {
+      margin: 28px 0 34px;
+      color: var(--muted);
+      font-weight: 900;
+      letter-spacing: .03em;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .tool-button {
+      border: 4px solid var(--line);
+      border-radius: 0;
+      font-weight: 900;
+      transition: none;
+      position: relative;
+    }
+
+    .primary-button {
+      min-width: 210px;
+      padding: 15px 28px;
+      color: white;
+      background: var(--accent);
+      box-shadow: 6px 6px 0 var(--line);
+      font-size: 1.05rem;
+      text-shadow: 2px 2px 0 var(--accent-dark);
+    }
+
+    .primary-button:hover:not(:disabled) {
+      transform: translate(-2px, -2px);
+      box-shadow: 8px 8px 0 var(--line);
+      background: #ff6682;
+    }
+
+    .primary-button:active:not(:disabled) {
+      transform: translate(5px, 5px);
+      box-shadow: 1px 1px 0 var(--line);
+    }
+
+    .secondary-button,
+    .tool-button {
+      padding: 10px 15px;
+      background: var(--paper-light);
+      color: var(--ink);
+      box-shadow: 4px 4px 0 var(--line);
+    }
+
+    .secondary-button:hover:not(:disabled),
+    .tool-button:hover:not(:disabled),
+    .tool-button.active {
+      color: var(--line);
+      background: var(--yellow);
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0 var(--line);
+    }
+
+    .rule-card {
+      text-align: left;
+      margin: 28px auto 34px;
+      max-width: 570px;
+      padding: 22px;
+      background: var(--paper-light);
+      border: 4px solid var(--line);
+      box-shadow: inset 0 0 0 3px #e6dcae;
+      line-height: 1.9;
+      font-weight: 800;
+    }
+
+    .rule-card strong { color: var(--accent-dark); }
+
+    .player-badge {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 8px 16px;
+      background: var(--blue);
+      color: white;
+      border: 4px solid var(--line);
+      box-shadow: 4px 4px 0 var(--line);
+      font-weight: 900;
+    }
+
+    /* 描画画面 */
+    .draw-layout {
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+    }
+
+    .draw-header {
+      width: min(760px, 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 14px 18px;
+      background: var(--paper);
+      border: 4px solid var(--line);
+      box-shadow: 6px 6px 0 var(--line);
+    }
+
+    .draw-header h2 {
+      margin: 0;
+      font-size: clamp(1.2rem, 4vw, 1.75rem);
+    }
+
+    .timer {
+      min-width: 126px;
+      padding: 8px 13px;
+      color: white;
+      background: var(--purple);
+      border: 4px solid var(--line);
+      box-shadow: 4px 4px 0 var(--line);
+      font-size: 1.15rem;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .timer.danger {
+      animation: pulse .45s steps(2, end) infinite alternate;
+    }
+
+    @keyframes pulse {
+      to { transform: scale(1.06); background: #d5003d; }
+    }
+
+    .canvas-shell {
+      width: min(500px, calc(100vw - 32px));
+      aspect-ratio: 1;
+      background: white;
+      border: 6px solid var(--line);
+      box-shadow: 10px 10px 0 var(--line), inset 0 0 0 4px #c7c4d9;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #drawCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: white;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .toolbar {
+      width: min(760px, 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 15px;
+      background: var(--paper);
+      border: 4px solid var(--line);
+      box-shadow: 6px 6px 0 var(--line);
+    }
+
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .tool-label {
+      font-size: .9rem;
+      font-weight: 900;
+      color: var(--muted);
+    }
+
+    /* 名前入力 */
+    .name-input {
+      width: min(460px, 100%);
+      margin: 24px 0 18px;
+      padding: 16px 18px;
+      border: 5px solid var(--line);
+      border-radius: 0;
+      background: var(--paper-light);
+      box-shadow: inset 4px 4px 0 #d7cfaa;
+      font-size: 1.15rem;
+      font-weight: 900;
+      outline: none;
+      text-align: center;
+    }
+
+    .name-input:focus {
+      box-shadow: inset 4px 4px 0 #d7cfaa, 0 0 0 5px var(--blue);
+    }
+
+    .input-note {
+      min-height: 1.5em;
+      margin: 0 0 18px;
+      color: var(--accent-dark);
+      font-weight: 900;
+    }
+
+    /* AI分析 */
+    .analysis-icon {
+      width: 128px;
+      height: 128px;
+      margin: 0 auto 22px;
+      display: grid;
+      place-items: center;
+      border: 5px solid var(--line);
+      background: var(--yellow);
+      box-shadow: 8px 8px 0 var(--line), inset 0 0 0 5px #fff09c;
+      font-size: 48px;
+      font-weight: 900;
+      animation: think .55s steps(3, end) infinite alternate;
+    }
+
+    @keyframes think {
+      to { transform: translateY(-6px); }
+    }
+
+    .progress-track {
+      width: min(500px, 100%);
+      height: 30px;
+      margin: 28px auto 12px;
+      overflow: hidden;
+      background: #2b2d53;
+      border: 5px solid var(--line);
+      box-shadow: 4px 4px 0 var(--line);
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--blue) 0 18px,
+        #84d4ff 18px 34px
+      );
+    }
+
+    .progress-bar.running {
+      animation: analyze 1.7s steps(12, end) forwards;
+    }
+
+    @keyframes analyze {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    /* バトル画面 */
+    .battle-wrap {
+      display: grid;
+      gap: 18px;
+      position: relative;
+      padding: 20px;
+      border: 5px solid var(--line);
+      background:
+        linear-gradient(to bottom, #203b78 0 45%, #4878b8 45% 52%, #4f8f58 52% 68%, #32653f 68% 72%, #2e355f 72% 100%);
+      box-shadow: 10px 10px 0 var(--line);
+      overflow: hidden;
+    }
+
+    .battle-wrap::before {
+      content: "✦   ·   ✦      ·      ✦";
+      position: absolute;
+      top: 18px;
+      left: 7%;
+      right: 7%;
+      color: #fff7d6;
+      opacity: .8;
+      font-size: 18px;
+      letter-spacing: 1.2em;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .battle-title {
+      margin: 0;
+      color: #fff;
+      text-align: center;
+      font-size: clamp(2rem, 7vw, 4.3rem);
+      letter-spacing: .08em;
+      text-shadow:
+        3px 0 0 var(--line), -3px 0 0 var(--line),
+        0 3px 0 var(--line), 0 -3px 0 var(--line),
+        7px 7px 0 var(--accent);
+      z-index: 1;
+    }
+
+    .fighters {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: clamp(10px, 3vw, 28px);
+      align-items: center;
+      z-index: 1;
+    }
+
+    .vs {
+      padding: 10px 4px;
+      color: var(--yellow);
+      font-size: clamp(1.7rem, 6vw, 3.6rem);
+      font-weight: 1000;
+      text-shadow: 4px 4px 0 var(--line);
+      animation: vsBlink .7s steps(2, end) infinite;
+    }
+
+    @keyframes vsBlink { 50% { opacity: .6; } }
+
+    .fighter-card {
+      min-width: 0;
+      padding: clamp(12px, 2vw, 20px);
+      background: var(--paper);
+      border: 5px solid var(--line);
+      box-shadow: 7px 7px 0 var(--line), inset 0 0 0 4px var(--paper-light);
+      transition: none;
+      position: relative;
+    }
+
+    .fighter-card::before {
+      content: "P";
+      position: absolute;
+      top: -16px;
+      left: -12px;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: var(--purple);
+      border: 3px solid var(--line);
+      font-size: 14px;
+    }
+
+    #fighterCard1::before { content: "P2"; background: var(--accent); }
+    #fighterCard0::before { content: "P1"; }
+
+    .fighter-card.active-turn {
+      outline: 5px solid var(--yellow);
+      transform: translateY(-5px);
+      animation: activeFighter .65s steps(2, end) infinite alternate;
+    }
+
+    @keyframes activeFighter { to { outline-color: #fff7d6; } }
+
+    .fighter-card.attacking-left { animation: attackLeft .34s steps(4, end); }
+    .fighter-card.attacking-right { animation: attackRight .34s steps(4, end); }
+    .fighter-card.hit { animation: hit .36s steps(5, end); }
+
+    @keyframes attackLeft { 50% { transform: translateX(34px); } }
+    @keyframes attackRight { 50% { transform: translateX(-34px); } }
+    @keyframes hit {
+      20%, 60% { transform: translateX(-9px); filter: invert(1); }
+      40%, 80% { transform: translateX(9px); }
+    }
+
+    .monster-image {
+      display: block;
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 1;
+      margin: 0 auto 12px;
+      object-fit: contain;
+      background: white;
+      border: 4px solid var(--line);
+      image-rendering: pixelated;
+    }
+
+    .monster-name {
+      margin: 9px 0;
+      overflow-wrap: anywhere;
+      font-size: clamp(1.05rem, 3vw, 1.55rem);
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .stat-chip {
+      padding: 7px;
+      background: var(--paper-light);
+      border: 3px solid var(--line);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .hp-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-weight: 900;
+    }
+
+    .hp-track {
+      height: 24px;
+      overflow: hidden;
+      background: #2d2b46;
+      border: 4px solid var(--line);
+    }
+
+    .hp-fill {
+      width: 100%;
+      height: 100%;
+      background: var(--green);
+      transition: width .35s steps(10, end), background .2s steps(2, end);
+    }
+
+    .speech-panel {
+      min-height: 108px;
+      padding: 14px 18px 16px;
+      color: #fff;
+      background: #101126;
+      border: 5px solid #fff;
+      outline: 5px solid var(--line);
+      box-shadow: 7px 7px 0 var(--line);
+      position: relative;
+      z-index: 2;
+    }
+
+    .speech-panel::after {
+      content: "▼";
+      position: absolute;
+      right: 16px;
+      bottom: 8px;
+      color: var(--yellow);
+      animation: cursorBlink .6s steps(2, end) infinite;
+    }
+
+    @keyframes cursorBlink { 50% { opacity: 0; } }
+
+    .speech-name {
+      display: inline-block;
+      margin: 0 0 10px;
+      padding: 4px 9px;
+      color: var(--line);
+      background: var(--yellow);
+      border: 3px solid var(--line);
+      font-size: .92rem;
+      font-weight: 900;
+    }
+
+    .speech-text {
+      margin: 0;
+      min-height: 1.5em;
+      font-size: clamp(1rem, 3vw, 1.32rem);
+      line-height: 1.65;
+      letter-spacing: .03em;
+      text-align: left;
+    }
+
+    .speech-panel.flash {
+      animation: speechFlash .28s steps(3, end);
+    }
+
+    @keyframes speechFlash {
+      50% { transform: translateY(-4px); background: #25275c; }
+    }
+
+    .battle-console {
+      padding: 18px;
+      background: var(--paper);
+      border: 5px solid var(--line);
+      box-shadow: 7px 7px 0 var(--line);
+      text-align: center;
+      z-index: 1;
+    }
+
+    .turn-label {
+      min-height: 1.5em;
+      margin: 0 0 12px;
+      color: var(--blue-dark);
+      font-weight: 1000;
+      font-size: 1.1rem;
+    }
+
+    .attack-button { min-width: 230px; }
+
+    .battle-log {
+      height: 165px;
+      margin: 18px 0 0;
+      padding: 14px;
+      overflow-y: auto;
+      background: #101126;
+      color: #f7f7f7;
+      border: 5px solid var(--line);
+      text-align: left;
+      line-height: 1.7;
+      font-family: "Courier New", "MS Gothic", monospace;
+      box-shadow: inset 0 0 0 3px #30336b;
+    }
+
+    .battle-log p { margin: 0 0 7px; }
+    .battle-log .log-speech { color: var(--yellow); }
+    .battle-log .log-damage { color: #ff91a7; }
+    .battle-log .log-system { color: #7bd8ff; }
+
+    .result {
+      display: none;
+      margin-top: 2px;
+      padding: 20px;
+      background: var(--yellow);
+      border: 5px solid var(--line);
+      box-shadow: 8px 8px 0 var(--line), inset 0 0 0 4px #fff0a2;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .result.show {
+      display: block;
+      animation: victory .5s steps(6, end) both;
+    }
+
+    @keyframes victory {
+      from { opacity: 0; transform: scale(.72); }
+      70% { transform: scale(1.08); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .result h2 {
+      margin: 0 0 15px;
+      font-size: clamp(1.8rem, 6vw, 3.2rem);
+      text-shadow: 3px 3px 0 #fff;
+    }
+
+    @media (max-width: 720px) {
+      .app { width: min(100% - 14px, 1120px); padding-top: 14px; }
+      .battle-wrap { padding: 12px; gap: 14px; }
+      .fighters { grid-template-columns: 1fr 38px 1fr; align-items: start; }
+      .fighter-card { padding: 9px; border-width: 4px; }
+      .monster-image { border-width: 3px; }
+      .stats { grid-template-columns: 1fr; gap: 4px; }
+      .stat-chip { font-size: .75rem; padding: 5px; }
+      .hp-row { grid-template-columns: 1fr; gap: 4px; text-align: center; }
+      .hp-row > span:first-child { display: none; }
+      .hp-track { height: 20px; }
+      .speech-panel { min-height: 120px; }
+      .battle-log { height: 180px; font-size: .83rem; }
+      .panel { box-shadow: 6px 6px 0 var(--line), inset 0 0 0 4px var(--paper-light); }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <!-- 1. スタート画面 -->
+    <section id="startScreen" class="screen active" aria-labelledby="gameTitle">
+      <div class="panel">
+        <h1 id="gameTitle" class="title">ラクガキ<br>バトル</h1>
+        <p class="subtitle">8-BIT WORLDで、自分のラクガキを戦士にしよう！</p>
+        <button id="startButton" class="primary-button" type="button">ゲームスタート</button>
+      </div>
+    </section>
+
+    <!-- 2. ルール説明画面 -->
+    <section id="ruleScreen" class="screen" aria-labelledby="ruleTitle">
+      <div class="panel">
+        <span id="rulePlayerBadge" class="player-badge">プレイヤー1</span>
+        <h2 id="ruleTitle">モンスターを描こう！</h2>
+        <div class="rule-card">
+          <p>これから<strong>30秒</strong>の間に、戦わせたいモンスターの絵を描いてもらいます。</p>
+          <p>使えるのは黒いペンと白い消しゴム。描き込む量と名前から、攻撃力・守備力が決まります。</p>
+          <p>黒いピクセルが多いほど守備型、名前が長いほど攻撃型になりやすいです。</p>
+        </div>
+        <button id="ruleNextButton" class="primary-button" type="button">次へ</button>
+      </div>
+    </section>
+
+    <!-- 3. 描画画面 -->
+    <section id="drawScreen" class="screen" aria-labelledby="drawTitle">
+      <div class="draw-layout">
+        <div class="draw-header">
+          <h2 id="drawTitle">プレイヤー1のモンスター</h2>
+          <div id="timer" class="timer" aria-live="polite">残り 30 秒</div>
+        </div>
+
+        <div class="canvas-shell">
+          <canvas id="drawCanvas" width="500" height="500" aria-label="モンスターを描くキャンバス"></canvas>
+        </div>
+
+        <div class="toolbar" aria-label="お絵描きツール">
+          <div class="tool-group">
+            <span class="tool-label">ペン:</span>
+            <button class="tool-button size-button" data-size="4" type="button">細</button>
+            <button class="tool-button size-button active" data-size="10" type="button">中</button>
+            <button class="tool-button size-button" data-size="24" type="button">太</button>
+          </div>
+          <div class="tool-group">
+            <button id="penButton" class="tool-button active" type="button">黒ペン</button>
+            <button id="eraserButton" class="tool-button" type="button">消しゴム</button>
+            <button id="undoButton" class="secondary-button" type="button">Undo（元に戻す）</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 名前入力画面 -->
+    <section id="nameScreen" class="screen" aria-labelledby="nameTitle">
+      <div class="panel">
+        <span id="namePlayerBadge" class="player-badge">プレイヤー1</span>
+        <h2 id="nameTitle">モンスターに名前をつけよう</h2>
+        <input id="monsterNameInput" class="name-input" type="text" maxlength="20" autocomplete="off" placeholder="例：ギガラクガキング">
+        <p id="inputNote" class="input-note" aria-live="polite"></p>
+        <button id="nameSubmitButton" class="primary-button" type="button">この名前に決定</button>
+      </div>
+    </section>
+
+    <!-- 5. AI分析中演出 -->
+    <section id="analysisScreen" class="screen" aria-labelledby="analysisTitle">
+      <div class="panel">
+        <div class="analysis-icon" aria-hidden="true">AI</div>
+        <h2 id="analysisTitle">モンスターを分析中...</h2>
+        <p>AIが描き込まれたピクセルと名前から、能力値をディープラーニング分析中...</p>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <p id="analysisText">ピクセル密度を計測しています</p>
+      </div>
+    </section>
+
+    <!-- 6. 対戦画面 -->
+    <section id="battleScreen" class="screen" aria-labelledby="battleTitle">
+      <div class="battle-wrap">
+        <h1 id="battleTitle" class="battle-title">PIXEL BATTLE!</h1>
+
+        <div class="fighters">
+          <article id="fighterCard0" class="fighter-card">
+            <img id="monsterImage0" class="monster-image" alt="プレイヤー1が描いたモンスター">
+            <h2 id="monsterName0" class="monster-name"></h2>
+            <div class="stats">
+              <div id="attackStat0" class="stat-chip"></div>
+              <div id="defenseStat0" class="stat-chip"></div>
+            </div>
+            <div class="hp-row">
+              <span>HP</span>
+              <div class="hp-track"><div id="hpFill0" class="hp-fill"></div></div>
+              <span id="hpText0">100 / 100</span>
+            </div>
+          </article>
+
+          <div class="vs">VS</div>
+
+          <article id="fighterCard1" class="fighter-card">
+            <img id="monsterImage1" class="monster-image" alt="プレイヤー2が描いたモンスター">
+            <h2 id="monsterName1" class="monster-name"></h2>
+            <div class="stats">
+              <div id="attackStat1" class="stat-chip"></div>
+              <div id="defenseStat1" class="stat-chip"></div>
+            </div>
+            <div class="hp-row">
+              <span>HP</span>
+              <div class="hp-track"><div id="hpFill1" class="hp-fill"></div></div>
+              <span id="hpText1">100 / 100</span>
+            </div>
+          </article>
+        </div>
+
+        <div id="speechPanel" class="speech-panel" aria-live="polite">
+          <div id="speechName" class="speech-name">SYSTEM</div>
+          <p id="speechText" class="speech-text">モンスターたちが たたかいの じゅんびをしている……</p>
+        </div>
+
+        <div class="battle-console">
+          <p id="turnLabel" class="turn-label"></p>
+          <button id="attackButton" class="primary-button attack-button" type="button">攻撃する</button>
+          <div id="battleLog" class="battle-log" aria-live="polite"></div>
+        </div>
+
+        <div id="resultBox" class="result" aria-live="assertive">
+          <h2 id="resultText"></h2>
+          <button id="retryButton" class="primary-button" type="button">もう一度あそぶ</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    // ================================
+    // 画面・ゲーム全体の状態
+    // ================================
+    const screens = {
+      start: document.getElementById("startScreen"),
+      rule: document.getElementById("ruleScreen"),
+      draw: document.getElementById("drawScreen"),
+      name: document.getElementById("nameScreen"),
+      analysis: document.getElementById("analysisScreen"),
+      battle: document.getElementById("battleScreen")
+    };
+
+    let currentPlayerIndex = 0;
+    let players = [];
+    let pendingDrawing = null;
+    let currentTurn = 0;
+    let battleFinished = false;
+    let isResolvingAttack = false;
+
+    // 指定した画面だけを表示する
+    function showScreen(screenName) {
+      Object.values(screens).forEach((screen) => screen.classList.remove("active"));
+      screens[screenName].classList.add("active");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ================================
+    // 描画キャンバス
+    // ================================
+    const canvas = document.getElementById("drawCanvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const timerElement = document.getElementById("timer");
+    const drawTitle = document.getElementById("drawTitle");
+    const undoButton = document.getElementById("undoButton");
+    const penButton = document.getElementById("penButton");
+    const eraserButton = document.getElementById("eraserButton");
+    const sizeButtons = [...document.querySelectorAll(".size-button")];
+
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let brushSize = 10;
+    let drawingColor = "#000000";
+    let undoStack = [];
+    let drawingEnabled = false;
+    let countdownId = null;
+    let timeLeft = 30;
+
+    // キャンバスを真っ白に初期化する
+    function resetCanvas() {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      undoStack = [];
+      updateUndoButton();
+    }
+
+    // PointerEventの座標を、実際の500×500キャンバス座標へ変換する
+    function getCanvasPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (canvas.width / rect.width),
+        y: (event.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    // 一筆描き始める直前の状態をUndo用に保存する
+    function saveUndoState() {
+      if (undoStack.length >= 25) undoStack.shift();
+      undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      updateUndoButton();
+    }
+
+    function updateUndoButton() {
+      undoButton.disabled = undoStack.length === 0 || !drawingEnabled;
+    }
+
+    function beginStroke(event) {
+      if (!drawingEnabled) return;
+      event.preventDefault();
+      canvas.setPointerCapture?.(event.pointerId);
+      saveUndoState();
+
+      const position = getCanvasPosition(event);
+      isDrawing = true;
+      lastX = position.x;
+      lastY = position.y;
+
+      // クリックだけでも点が描けるよう、小さな点を打つ
+      ctx.beginPath();
+      ctx.fillStyle = drawingColor;
+      ctx.arc(lastX, lastY, brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawStroke(event) {
+      if (!isDrawing || !drawingEnabled) return;
+      event.preventDefault();
+
+      const position = getCanvasPosition(event);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(position.x, position.y);
+      ctx.strokeStyle = drawingColor;
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+
+      lastX = position.x;
+      lastY = position.y;
+    }
+
+    function endStroke(event) {
+      if (!isDrawing) return;
+      event?.preventDefault();
+      isDrawing = false;
+    }
+
+    canvas.addEventListener("pointerdown", beginStroke);
+    canvas.addEventListener("pointermove", drawStroke);
+    canvas.addEventListener("pointerup", endStroke);
+    canvas.addEventListener("pointercancel", endStroke);
+    canvas.addEventListener("pointerleave", (event) => {
+      if (event.buttons === 0) endStroke(event);
+    });
+
+    undoButton.addEventListener("click", () => {
+      const previousState = undoStack.pop();
+      if (previousState) ctx.putImageData(previousState, 0, 0);
+      updateUndoButton();
+    });
+
+    // ペンの太さ切り替え
+    sizeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        brushSize = Number(button.dataset.size);
+        sizeButtons.forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+      });
+    });
+
+    // 黒ペンと白い消しゴムを切り替える
+    penButton.addEventListener("click", () => {
+      drawingColor = "#000000";
+      penButton.classList.add("active");
+      eraserButton.classList.remove("active");
+    });
+
+    eraserButton.addEventListener("click", () => {
+      drawingColor = "#ffffff";
+      eraserButton.classList.add("active");
+      penButton.classList.remove("active");
+    });
+
+    // 描画画面を開始し、30秒タイマーを動かす
+    function startDrawingPhase() {
+      showScreen("draw");
+      resetCanvas();
+      drawingEnabled = true;
+      canvas.style.pointerEvents = "auto";
+      drawTitle.textContent = `プレイヤー${currentPlayerIndex + 1}のモンスター`;
+      timeLeft = 30;
+      updateTimerDisplay();
+      updateUndoButton();
+
+      clearInterval(countdownId);
+      countdownId = setInterval(() => {
+        timeLeft -= 1;
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+          clearInterval(countdownId);
+          finishDrawingPhase();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      timerElement.textContent = `残り ${timeLeft} 秒`;
+      timerElement.classList.toggle("danger", timeLeft <= 5);
+    }
+
+    // 30秒終了時に画像と黒ピクセル数を保存して名前入力へ進む
+    function finishDrawingPhase() {
+      drawingEnabled = false;
+      isDrawing = false;
+      canvas.style.pointerEvents = "none";
+      updateUndoButton();
+
+      pendingDrawing = {
+        image: canvas.toDataURL("image/png"),
+        blackPixels: countBlackPixels()
+      };
+
+      document.getElementById("namePlayerBadge").textContent = `プレイヤー${currentPlayerIndex + 1}`;
+      document.getElementById("monsterNameInput").value = "";
+      document.getElementById("inputNote").textContent = "";
+      showScreen("name");
+      setTimeout(() => document.getElementById("monsterNameInput").focus(), 50);
+    }
+
+    // 白背景以外の暗いピクセルを数える。アンチエイリアスの灰色も黒として扱う
+    function countBlackPixels() {
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let blackPixelCount = 0;
+
+      for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+        const brightness = (r + g + b) / 3;
+        if (brightness < 200) blackPixelCount += 1;
+      }
+
+      return blackPixelCount;
+    }
+
+    // ================================
+    // ステータス算出（擬似AI）
+    // ================================
+
+    // 文字列から毎回同じ整数を作る簡易ハッシュ
+    function createStableHash(text) {
+      let hash = 2166136261;
+      for (const character of text) {
+        hash ^= character.codePointAt(0);
+        hash = Math.imul(hash, 16777619);
+      }
+      return hash >>> 0;
+    }
+
+    // 黒ピクセルが多いほど守備寄り、名前が長いほど攻撃寄りにする
+    // 攻撃力 + 守備力は必ず20になる
+    function calculateStats(blackPixels, name) {
+      const totalPixels = canvas.width * canvas.height;
+      const inkRatio = blackPixels / totalPixels;
+      const inkInfluence = Math.min(8, Math.round(inkRatio * 32));
+      const nameLength = Array.from(name).length;
+      const nameInfluence = Math.min(8, Math.max(0, nameLength - 1));
+      const stableAdjustment = (createStableHash(`${name}:${blackPixels}`) % 3) - 1;
+
+      let attack = 10
+        + Math.round(nameInfluence / 2)
+        - Math.round(inkInfluence / 2)
+        + stableAdjustment;
+
+      attack = Math.max(3, Math.min(17, attack));
+      const defense = 20 - attack;
+
+      return { hp: 100, attack, defense };
+    }
+
+    // ================================
+    // 画面遷移とプレイヤー登録
+    // ================================
+    document.getElementById("startButton").addEventListener("click", () => {
+      currentPlayerIndex = 0;
+      players = [];
+      prepareRuleScreen();
+    });
+
+    function prepareRuleScreen() {
+      document.getElementById("rulePlayerBadge").textContent = `プレイヤー${currentPlayerIndex + 1}`;
+      showScreen("rule");
+    }
+
+    document.getElementById("ruleNextButton").addEventListener("click", startDrawingPhase);
+
+    const nameInput = document.getElementById("monsterNameInput");
+    const nameSubmitButton = document.getElementById("nameSubmitButton");
+
+    function submitMonsterName() {
+      const name = nameInput.value.trim();
+      const inputNote = document.getElementById("inputNote");
+
+      if (!name) {
+        inputNote.textContent = "モンスターの名前を入力してください。";
+        nameInput.focus();
+        return;
+      }
+
+      const stats = calculateStats(pendingDrawing.blackPixels, name);
+      players.push({
+        name,
+        image: pendingDrawing.image,
+        blackPixels: pendingDrawing.blackPixels,
+        attack: stats.attack,
+        defense: stats.defense,
+        hp: stats.hp
+      });
+
+      pendingDrawing = null;
+
+      // 1体目なら、プレイヤー2のルール説明へ戻る
+      if (players.length < 2) {
+        currentPlayerIndex = 1;
+        prepareRuleScreen();
+      } else {
+        startAnalysis();
+      }
+    }
+
+    nameSubmitButton.addEventListener("click", submitMonsterName);
+    nameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitMonsterName();
+    });
+
+    // ================================
+    // AI分析中演出
+    // ================================
+    function startAnalysis() {
+      showScreen("analysis");
+      const progressBar = document.getElementById("progressBar");
+      const analysisText = document.getElementById("analysisText");
+      const messages = [
+        "ピクセル密度を計測しています",
+        "名前のエネルギーを解析しています",
+        "攻撃力と守備力を生成しています",
+        "分析完了！ バトルを開始します"
+      ];
+      let messageIndex = 0;
+
+      progressBar.classList.remove("running");
+      void progressBar.offsetWidth; // CSSアニメーションを最初から再生するための再計算
+      progressBar.classList.add("running");
+      analysisText.textContent = messages[0];
+
+      const messageTimer = setInterval(() => {
+        messageIndex = Math.min(messageIndex + 1, messages.length - 1);
+        analysisText.textContent = messages[messageIndex];
+      }, 430);
+
+      setTimeout(() => {
+        clearInterval(messageTimer);
+        setupBattle();
+      }, 1800);
+    }
+
+    // ================================
+    // ターン制バトル
+    // ================================
+    const attackButton = document.getElementById("attackButton");
+    const battleLog = document.getElementById("battleLog");
+    const turnLabel = document.getElementById("turnLabel");
+    const resultBox = document.getElementById("resultBox");
+    const resultText = document.getElementById("resultText");
+    const speechPanel = document.getElementById("speechPanel");
+    const speechName = document.getElementById("speechName");
+    const speechText = document.getElementById("speechText");
+
+    // 描いた画像を低解像度に縮小してから拡大し、ドット絵風に変換する
+    function createPixelatedImage(dataUrl, resolution = 96) {
+      return new Promise((resolve) => {
+        const sourceImage = new Image();
+
+        sourceImage.onload = () => {
+          const smallCanvas = document.createElement("canvas");
+          smallCanvas.width = resolution;
+          smallCanvas.height = resolution;
+          const smallContext = smallCanvas.getContext("2d");
+          smallContext.imageSmoothingEnabled = false;
+          smallContext.fillStyle = "#ffffff";
+          smallContext.fillRect(0, 0, resolution, resolution);
+          smallContext.drawImage(sourceImage, 0, 0, resolution, resolution);
+
+          const pixelCanvas = document.createElement("canvas");
+          pixelCanvas.width = 384;
+          pixelCanvas.height = 384;
+          const pixelContext = pixelCanvas.getContext("2d");
+          pixelContext.imageSmoothingEnabled = false;
+          pixelContext.fillStyle = "#ffffff";
+          pixelContext.fillRect(0, 0, pixelCanvas.width, pixelCanvas.height);
+          pixelContext.drawImage(smallCanvas, 0, 0, pixelCanvas.width, pixelCanvas.height);
+
+          resolve(pixelCanvas.toDataURL("image/png"));
+        };
+
+        // 変換に失敗した場合は元画像をそのまま使う
+        sourceImage.onerror = () => resolve(dataUrl);
+        sourceImage.src = dataUrl;
+      });
+    }
+
+    async function setupBattle() {
+      players.forEach((player) => { player.hp = 100; });
+      currentTurn = 0;
+      battleFinished = false;
+      isResolvingAttack = false;
+      battleLog.innerHTML = "";
+      resultBox.classList.remove("show");
+      attackButton.style.display = "inline-block";
+      attackButton.disabled = false;
+
+      // バトル画面では描いた絵をドット絵風にして表示する
+      const pixelImages = await Promise.all(
+        players.map((player) => createPixelatedImage(player.image))
+      );
+
+      players.forEach((player, index) => {
+        document.getElementById(`monsterImage${index}`).src = pixelImages[index];
+        document.getElementById(`monsterName${index}`).textContent = player.name;
+        document.getElementById(`attackStat${index}`).textContent = `ATK ${player.attack}`;
+        document.getElementById(`defenseStat${index}`).textContent = `DEF ${player.defense}`;
+      });
+
+      showSpeech("SYSTEM", `${players[0].name} と ${players[1].name} が あらわれた！`);
+      updateBattleUI();
+      addBattleLog(`${players[0].name} と ${players[1].name} のバトルが始まった！`, "system");
+      showScreen("battle");
+    }
+
+    // HPゲージ、残りHP、現在ターンを更新する
+    function updateBattleUI() {
+      players.forEach((player, index) => {
+        const hpPercent = Math.max(0, player.hp);
+        const hpFill = document.getElementById(`hpFill${index}`);
+        hpFill.style.width = `${hpPercent}%`;
+        hpFill.style.background = hpPercent > 50 ? "#39b86b" : hpPercent > 20 ? "#f2b632" : "#e53935";
+        document.getElementById(`hpText${index}`).textContent = `${Math.max(0, player.hp)} / 100`;
+        document.getElementById(`fighterCard${index}`).classList.toggle("active-turn", !battleFinished && index === currentTurn);
+      });
+
+      if (!battleFinished) {
+        turnLabel.textContent = `${players[currentTurn].name} のターン`;
+        attackButton.textContent = `${players[currentTurn].name}：攻撃する`;
+      }
+    }
+
+    function addBattleLog(message, type = "normal") {
+      const line = document.createElement("p");
+      line.className = `log-${type}`;
+      line.textContent = `▶ ${message}`;
+      battleLog.appendChild(line);
+      battleLog.scrollTop = battleLog.scrollHeight;
+    }
+
+    // 上部のレトロゲーム風メッセージウィンドウにセリフを表示する
+    function showSpeech(speaker, message) {
+      speechName.textContent = speaker;
+      speechText.textContent = message;
+      speechPanel.classList.remove("flash");
+      void speechPanel.offsetWidth;
+      speechPanel.classList.add("flash");
+    }
+
+    // 技の種類や残りHPに応じてキャラクターのセリフを選ぶ
+    function chooseBattleQuote(attacker, move) {
+      const quoteGroups = {
+        normal: [
+          "くらえっ！",
+          "ボクの一筆を見ろ！",
+          "まだまだいくぞ！",
+          "この線は止められない！"
+        ],
+        rush: [
+          "連続で描き込む！",
+          "ラクガキの嵐だ！",
+          "まとめてくらえーっ！",
+          "線も勢いもMAXだ！"
+        ],
+        critical: [
+          "これで決める！",
+          "必殺の一筆だ！",
+          "そこが弱点だ！",
+          "会心のラクガキ！"
+        ],
+        miss: [
+          "あれっ！？",
+          "線がズレたーっ！",
+          "ちょっと待って！",
+          "今のは練習だ！"
+        ],
+        danger: [
+          "まだ消されてたまるか！",
+          "ここからが本番だ！",
+          "最後の一線まで戦う！",
+          "ボクはまだ描ける！"
+        ]
+      };
+
+      let groupName = "normal";
+      if (attacker.hp <= 30 && Math.random() < 0.6) {
+        groupName = "danger";
+      } else if (move.name === "クリティカル") {
+        groupName = "critical";
+      } else if (move.name === "ラクガキラッシュ") {
+        groupName = "rush";
+      } else if (move.damage === 0) {
+        groupName = "miss";
+      }
+
+      const group = quoteGroups[groupName];
+      return group[Math.floor(Math.random() * group.length)];
+    }
+
+    // ランダムに技を選び、その技に応じたダメージを計算する
+    function chooseMove(attacker, defender) {
+      const roll = Math.random();
+
+      if (roll < 0.15) {
+        return {
+          name: "大振りアタック",
+          damage: 0,
+          message: `${attacker.name}の大振りアタック！ しかし、豪快に空振りした！`
+        };
+      }
+
+      if (roll < 0.35) {
+        const damage = Math.max(
+          8,
+          Math.floor(13 + attacker.attack * 0.9 - defender.defense * 0.3 + Math.random() * 6)
+        );
+        return {
+          name: "クリティカル",
+          damage,
+          message: `急所に命中！ ${defender.name}に${damage}のクリティカルダメージ！`
+        };
+      }
+
+      if (roll < 0.55) {
+        const damage = Math.max(
+          5,
+          Math.floor(10 + attacker.attack * 0.75 - defender.defense * 0.35 + Math.random() * 5)
+        );
+        return {
+          name: "ラクガキラッシュ",
+          damage,
+          message: `${attacker.name}のラクガキラッシュ！ ${defender.name}に${damage}のダメージ！`
+        };
+      }
+
+      const damage = Math.max(
+        3,
+        Math.floor(7 + attacker.attack * 0.65 - defender.defense * 0.35 + Math.random() * 5)
+      );
+      return {
+        name: "通常攻撃",
+        damage,
+        message: `${attacker.name}の攻撃！ ${defender.name}に${damage}のダメージ！`
+      };
+    }
+
+    attackButton.addEventListener("click", () => {
+      if (battleFinished || isResolvingAttack) return;
+
+      isResolvingAttack = true;
+      attackButton.disabled = true;
+
+      const attackerIndex = currentTurn;
+      const defenderIndex = 1 - currentTurn;
+      const attacker = players[attackerIndex];
+      const defender = players[defenderIndex];
+      const move = chooseMove(attacker, defender);
+      const quote = chooseBattleQuote(attacker, move);
+      const attackerCard = document.getElementById(`fighterCard${attackerIndex}`);
+      const defenderCard = document.getElementById(`fighterCard${defenderIndex}`);
+
+      // 先にキャラクターのセリフを表示してから攻撃演出へ進む
+      showSpeech(attacker.name, `「${quote}」`);
+      addBattleLog(`${attacker.name}「${quote}」`, "speech");
+
+      setTimeout(() => {
+        attackerCard.classList.add(attackerIndex === 0 ? "attacking-left" : "attacking-right");
+        addBattleLog(`${attacker.name}は「${move.name}」を繰り出した！`, "system");
+
+        setTimeout(() => {
+          attackerCard.classList.remove("attacking-left", "attacking-right");
+
+          if (move.damage > 0) {
+            defender.hp = Math.max(0, defender.hp - move.damage);
+            defenderCard.classList.add("hit");
+            setTimeout(() => defenderCard.classList.remove("hit"), 380);
+          }
+
+          addBattleLog(move.message, move.damage > 0 ? "damage" : "system");
+          updateBattleUI();
+
+          if (defender.hp <= 0) {
+            finishBattle(attacker);
+            return;
+          }
+
+          // 攻撃を受けた側も、残りHPに応じてリアクションする
+          const reactions = defender.hp <= 30
+            ? ["くっ……まだだ！", "ここで消えるわけには！", "あと一本、線が残ってる！"]
+            : move.damage === 0
+              ? ["どこを狙ってる！", "見切った！", "その攻撃は当たらない！"]
+              : ["ぐわっ！", "なかなかやるな！", "まだ負けないぞ！"];
+          const reaction = reactions[Math.floor(Math.random() * reactions.length)];
+          showSpeech(defender.name, `「${reaction}」`);
+          addBattleLog(`${defender.name}「${reaction}」`, "speech");
+
+          setTimeout(() => {
+            currentTurn = defenderIndex;
+            isResolvingAttack = false;
+            attackButton.disabled = false;
+            updateBattleUI();
+          }, 430);
+        }, 420);
+      }, 430);
+    });
+
+    function finishBattle(winner) {
+      const victoryQuotes = [
+        "ボクのラクガキが最強だ！",
+        "勝負あり！",
+        "描いた線は裏切らない！",
+        "これがボクの完成形だ！"
+      ];
+      const victoryQuote = victoryQuotes[Math.floor(Math.random() * victoryQuotes.length)];
+
+      battleFinished = true;
+      isResolvingAttack = false;
+      attackButton.disabled = true;
+      attackButton.style.display = "none";
+      resultText.textContent = `${winner.name} の勝ち！`;
+      resultBox.classList.add("show");
+      turnLabel.textContent = "BATTLE FINISH!";
+      showSpeech(winner.name, `「${victoryQuote}」`);
+      addBattleLog(`${winner.name}「${victoryQuote}」`, "speech");
+      addBattleLog(`${winner.name}が勝利した！`, "system");
+      updateBattleUI();
+    }
+
+    // 最初の画面へ戻し、すべての状態をリセットする
+    document.getElementById("retryButton").addEventListener("click", () => {
+      clearInterval(countdownId);
+      currentPlayerIndex = 0;
+      players = [];
+      pendingDrawing = null;
+      currentTurn = 0;
+      battleFinished = false;
+      isResolvingAttack = false;
+      resetCanvas();
+      showScreen("start");
+    });
+
+    // 初期キャンバスを白くしておく
+    resetCanvas();
+  </script>
+</body>
+</html>
